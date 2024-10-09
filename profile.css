@@ -1,0 +1,85 @@
+body {
+    /* background-color: whitesmoke; */
+    background: linear-gradient(+125deg,
+    #e0e7dd55,
+    rgb(236, 247, 228) 50%,
+    #ffffff 70%,
+    #f5efef 100%);
+}
+.container-fluid {
+    position: relative;
+}
+.universityName {
+    color: maroon;
+    font-weight: 500;
+}
+section {
+    margin-top: 40px;
+}
+.scrollcards {
+    background-color: #fff;
+    overflow: auto;
+    white-space: nowrap;
+}
+::-webkit-scrollbar {
+    width: 0;
+    height: 0px;
+    background:transparent;
+}
+div.scrollcards .card {
+    display: inline-block;
+    text-decoration: none;
+    height: auto;
+    width: 250px;
+}
+.card {
+    margin: 0;
+    transition: 0.6s ease;
+    align-items: center;
+    background-color: transparent;
+}
+.card:hover {
+    transform: scale(1.05);
+}
+.card-block {
+    padding: 10px;
+}
+.card-title {
+    color: black;
+    font-family: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande",
+        "Lucida Sans", Arial, sans-serif;
+    font-size: large;
+    text-align: center;
+}
+.card-text {
+    text-align: center;
+    color: maroon;
+    font-size: large;
+}
+.card-img-top {
+    height: auto;
+    width: auto;
+}
+.col{
+    margin-bottom: 20px;
+}
+.menu {
+    text-align: center;
+}
+.seeMenu {
+    font-size: larger;
+    font-weight: 500;
+}
+.menuBtn:hover {
+    background-color: maroon;
+    color: white;
+}
+#footer {
+    position: relative;
+    text-align: center;
+}
+.foot {
+    position: absolute;
+    right: 8%;
+    left: 8%;
+}
