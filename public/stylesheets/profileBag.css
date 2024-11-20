@@ -1,0 +1,12 @@
+body{
+    background-color: rgba(184, 16, 16, 0.048);
+}
+
+.bagImage{
+    width: 100px;
+    height: 100px;
+}
+
+.bagBox{
+    margin: 10%;
+}

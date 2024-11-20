@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Bag</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link href="/stylesheets/profileBag.css" rel="stylesheet">
+</head>
+
+
+<body>
+    <div>
+        <header>
+            <!--Navigation Bar-->
+            <nav class="navbar navbar-expand-lg p-3 bg-body-tertiary">
+                <div class="container-fluid">
+                    <img src="/images/logoImage.jpg" class="m-2" width="70" height="70">
+                    <span>
+                        J.C. Bose University Of Science and Technology,YMCA, Faridabad
+                    </span>
+                    <ul class="navbar-nav me-auto my-2 my-lg-0 navbar-nav-scroll" style="--bs-scroll-height: 100px;">
+                    </ul>
+                    <form class="d-flex" role="search">
+                        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                        <button class="btn btn-outline-danger" type="submit">Search</button>
+                    </form>
+                    <div class="dropdown">
+                        <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton1"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="/images/logoImage.jpg" class="profilePic" height="50" width="50">
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton1">
+                            <li><a class="dropdown-item" href="/profile">
+                                    <%=user.email%>
+                                </a></li>
+                            <hr class="p-1 m-1">
+                            <li><a class="dropdown-item" href="/bag">Bag</a></li>
+                            <li><a class="dropdown-item" href="/orders">Orders</a></li>
+                            <li><a class="dropdown-item" href="#">Help</a></li>
+                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <section>
+            <div class="container-fluid">
+                <a href="/menu"><span>Go to menu</span></a>
+                <div style="margin-top: 0px;" class="bg-light rounded bagBox text-center p-4 shadow-sm">
+        
+                    <% if (user.bag.length === 0) { %>
+                        <p class="text-muted">Nothing to order</p>
+                    <% } else { %>
+                        <% let total = 0; %>
+                        <% user.bag.forEach(item => { %>
+        
+                            <div class="row align-items-center m-2 p-3 bg-white rounded shadow-sm">
+                                <!-- Image Column -->
+                                <div class="col-3 col-md-2">
+                                    <img class="img-fluid rounded bagImage" src="/images/logoImage.jpg" alt="<%= item.name.name %>">
+                                </div>
+        
+                                <!-- Name Column -->
+                                <div class="col-5 col-md-3 text-start">
+                                    <p class="mb-0"><strong><%= item.name.name %></strong></p>
+                                </div>
+        
+                                <!-- Price Column -->
+                                <div class="col-3 col-md-2 text-center text-muted">
+                                    <p class="mb-0">Rs.<%= item.name.price %></p>
+                                </div>
+        
+                                <!-- Quantity Control Column -->
+                                <div class="col-6 col-md-3 text-center">
+                                    <div class="d-flex justify-content-center align-items-center">
+                                        <!-- Decrease Button -->
+                                        <form action="/bag/decrease/<%= item._id %>" method="POST" class="m-0">
+                                            <button class="btn btn-outline-danger btn-sm" type="submit">-</button>
+                                        </form>
+        
+                                        <!-- Quantity Display -->
+                                        <span class="px-3"><%= item.quantity %></span>
+        
+                                        <!-- Increase Button -->
+                                        <form action="/bag/increase/<%= item._id %>" method="POST" class="m-0">
+                                            <button class="btn btn-outline-danger btn-sm" type="submit">+</button>
+                                        </form>
+                                    </div>
+                                </div>
+        
+                                <!-- Subtotal Column -->
+                                <div class="col-6 col-md-2 text-end">
+                                    <p class="mb-0 text-danger"><strong>Rs.<%= item.quantity * item.name.price %></strong></p>
+                                    <% total += item.quantity * item.name.price %>
+                                </div>
+                            </div>
+        
+                        <% }) %>
+        
+                        <!-- Total Amount -->
+                        <hr class="my-4 w-75 mx-auto">
+                        <div class="row justify-content-center">
+                            <div class="col-8 col-md-6 text-end">
+                                <h5 class="text-danger">Total: Rs.<%= total %></h5>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </section>
+        
+
+        <!--Horizontal Rule -->
+        <hr class="py-4 w-75 mx-auto">
+
+        <!--Menu Button-->
+        <div class="text-center  my-5 ">
+            <a href="/payment">
+                <button type="button " class="btn btn-danger my-2 my-sm-0  menuBtn">Place Order
+                </button>
+            </a>
+        </div>
+
+
+        <!--Footer-->
+        <footer class="bg-dark text-center text-white ">
+            <!-- Copyright -->
+            <div class="text-center p-3 " style="background-color: rgba(0, 0, 0, 0.2); ">
+                © 2024 Copyright:
+                <a class="text-white " href="https://jcboseust.ac.in/ ">
+                    JC Bose University Of Science andTechnology,YMCA
+                </a>
+            </div>
+        </footer>
+
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js "></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js "
+        integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT "
+        crossorigin="anonymous "></script>
+
+    <script src="/scripts/bag.js"></script>
+
+</body>
+
+</html>
