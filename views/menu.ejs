@@ -38,6 +38,7 @@
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton1">
                             <li><a class="dropdown-item" href="/profile">
                                 <%=user.email%>
+                                    <strong><span class="m-1">(<%=user.balance%>)</span></strong>
                             </a></li>
                             <hr class = "p-1 m-1">
                             <li><a class="dropdown-item" href="/bag">Bag</a></li>
@@ -55,17 +56,27 @@
         <section>
             
             <div class="container-fluid bg-trasparent m-4 p-3">
-                <a href="/bag"><span>Go to bag</span></a>
+                <a href="/bag"><span>Go to bag</span></a><br>
+                <a href="/gift"><span>Go to gift</span></a><br>
+                <a href="/availableGifts"><span>Available Gifts</span></a>
                 <div style="margin-top: 0px;" class="row m-3 row-cols-1 row-cols-xs-2 row-cols-sm-2 row-cols-lg-4 ">
                     <% menu.forEach(function(food){%>
                     <div class="mt-3 col">
 
                         <div class="card h-100 shadow-sm">
-                            <img src="<%= food.image %>" class="card-img-top" alt="<%= food.name %>">
+                            <img src="<%= food.image %>" class="card-img-top menuItem" alt="<%= food.name %>">
                             <!-- <img src="/images/logoImage.jpg" class="card-img-top" alt="..."> -->
                             <div class="card-body">
                                 <h4 class="card-title"><%=food.name%></h4>
                                 <p class="card-text"><%=food.price%></p>
+                                <div class="text-center my-4">
+                                    <form action="/addToGift/<%=food._id%>" method="POST">
+
+                                        <button type = "submit" class="btn btn-success">
+                                            <%= user.gift.some(item => item.name.equals(food._id)) ? "Remove from Gift" : "Add to Gift" %>
+                                        </button>
+                                    </form>
+                                </div>
                                 <div class="text-center my-4">
                                     <form action="/addToBag/<%=food._id%>" method="POST">
 
