@@ -18,6 +18,37 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
+const fs = require('fs');
+
+// Middleware to check admin access
+// function isAdmin(req, res, next) {
+//     if (req.user?.isAdmin) {
+//         return next();
+//     }
+//     return res.status(403).send('<h1>Access Denied</h1>');
+// }
+
+// Admin route to view orders in JSON format
+app.get('/orderList', (req, res) => {
+    const orderFilePath = path.join(__dirname, 'orderList.json');
+
+    fs.readFile(orderFilePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading order file:', err);
+            return res.status(500).json({ error: 'Error reading orders' });
+        }
+
+        try {
+            const orders = JSON.parse(data);
+
+            // Return orders as JSON
+            res.json(orders);
+        } catch (parseError) {
+            console.error('Error parsing order file:', parseError);
+            res.status(500).json({ error: 'Error parsing orders' });
+        }
+    });
+});
 
 
 app.get("/signup", function (req, res) {
@@ -25,28 +56,37 @@ app.get("/signup", function (req, res) {
 });
 
 app.post("/create", async function (req, res) {
-    let { email, password } = req.body;
-    const emailValid = email.trim();
-    const passwordValid = password.trim();
-    if (!emailValid || !passwordValid)
-        return res.send("Something went wrong")
+    try {
+        // Extracting email and password
+        const { email, password } = req.body;
 
-    let user = await userModel.findOne({ email });
-    if (user)
-        return res.status(500).send("User Already exists");
+        // Validate the presence of email and password
+        if (!email || !password) {
+            return res.status(400).send("Email and password are required");
+        }
 
-    bcrypt.genSalt(10, (err, salt) => {
-        bcrypt.hash(password, salt, async (err, hash) => {
-            let createdUser = await userModel.create({
-                email,
-                password: hash
-            });
+        const emailValid = email.trim();
+        const passwordValid = password.trim();
 
-            let token = jwt.sign({ email }, "secret");
-            res.cookie("token", token);
-            res.send("Account Registered. You can login");
-        })
-    })
+        // Check if email is already registered
+        const user = await userModel.findOne({ email: emailValid });
+        if (user) {
+            return res.status(400).send("User already exists");
+        }
+
+        // Hash the password and create the user
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(passwordValid, salt);
+        const createdUser = await userModel.create({ email: emailValid, password: hash });
+
+        // Generate a token and set it as a cookie
+        const token = jwt.sign({ email: createdUser.email }, "secret");
+        res.cookie("token", token);
+        res.status(201).send("Account registered. You can now log in.");
+    } catch (error) {
+        console.error("Error during user creation:", error);
+        res.status(500).send("Internal Server Error");
+    }
 });
 
 app.get("/orders", isLoggedIn, async function (req, res) {
@@ -227,9 +267,152 @@ app.post("/gift/decrease/:id", isLoggedIn, async (req, res) => {
     }
 });
 
-app.get("/payment", async function (req, res) {
-    res.render("payment");
+app.get("/confirmOrder", isLoggedIn, async function (req, res) {
+    const user = await userModel.findOne({ email: req.user.email }).populate('bag');
+    if(!user){
+        return res.send("Not Logged in");
+    }
+    res.render("confirmOrder", {user});
 });
+app.post('/confirmOrder',isLoggedIn, async (req, res) => {
+    try {
+        // Ensure the request body exists and contains an email
+        const { email: enteredEmail } = req.body;
+        if (!enteredEmail) {
+            return res.send(`
+                <h1 style="text-align:center; color: red;">Email is required!</h1>
+                <a href="/confirmOrder" style="display: block; text-align: center; margin-top: 20px;">Go back</a>
+            `);
+        }
+
+        // Fetch the user using req.user.email
+        const user = await userModel.findOne({ email: req.user.email }).populate('bag');
+        if (!user) {
+            return res.send(`
+                <h1 style="text-align:center; color: red;">User not found!</h1>
+                <a href="/confirmOrder" style="display: block; text-align: center; margin-top: 20px;">Go back</a>
+            `);
+        }
+
+        // Check if the entered email matches the user's email
+        if (enteredEmail.trim() === user.email.trim()) {
+            const bagItems = user.bag || [];
+            res.redirect(`/finalOrder?bag=${encodeURIComponent(JSON.stringify(bagItems))}`);
+        } else {
+            res.send(`
+                <h1 style="text-align:center; color: red;">Email does not match!</h1>
+                <a href="/confirmOrder" style="display: block; text-align: center; margin-top: 20px;">Go back</a>
+            `);
+        }
+    } catch (error) {
+        console.error("Error in confirmOrder:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+// Helper function to write data to the JSON file
+function writeOrderToFile(orderData) {
+    const orderFilePath = path.join(__dirname, 'orderList.json');
+
+    // Read existing orders from the file
+    fs.readFile(orderFilePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading order file:', err);
+            return;
+        }
+
+        let orders = [];
+        try {
+            // Parse existing orders or start with an empty array if no orders exist
+            orders = JSON.parse(data);
+        } catch (parseError) {
+            console.error('Error parsing order file:', parseError);
+        }
+
+        // Push the new order to the orders array
+        orders.push(orderData);
+
+        // Write the updated orders array back to the file
+        fs.writeFile(orderFilePath, JSON.stringify(orders, null, 2), (writeErr) => {
+            if (writeErr) {
+                console.error('Error writing order file:', writeErr);
+            } else {
+                console.log('Order saved successfully!');
+            }
+        });
+    });
+}
+
+app.get('/finalOrder', isLoggedIn, async (req, res) => {
+    const user = await userModel.findOne({ email: req.user.email }).populate({
+        path: 'bag',
+        populate: {
+            path: 'name', // Populate 'name' field in each Bag item, which refers to a menu item
+            model: 'menu' // Ensure the model for 'name' is Menu
+        }
+    });
+
+
+    try {
+        const bag = JSON.parse(req.query.bag || '[]');
+        if (bag.length === 0) {
+            return res.send(`
+                <h1>Your order bag is empty!</h1>
+                <a href="/confirmOrder">Go back</a>
+            `);
+        }
+
+        // Prepare order details
+        const email = req.user?.email || 'guest';  // Assuming user email is available
+        const orderData = {
+            email: user.email,
+            bag: user.bag,
+            timestamp: new Date().toISOString()
+        };
+
+        // Save order to file
+        writeOrderToFile(orderData);
+
+        // Generate the items list for displaying the order
+        const itemsList = bag.map(item => `
+            <tr>
+                <td>${item.name}</td>
+                <td>${item.quantity}</td>
+                <td>₹${item.price}</td>
+                <td>₹${item.quantity * item.price}</td>
+            </tr>
+        `).join('');
+
+        const totalPrice = bag.reduce((total, item) => total + (item.quantity * item.price), 0);
+
+        // Send the confirmation message
+        res.send(`
+            <div>
+                <h1>Order Confirmed!</h1>
+                <table border="1" style="width: 100%; text-align: left;">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsList}
+                    </tbody>
+                </table>
+                <h3>Total Price: ₹${totalPrice}</h3>
+                <a href="/orderList">View Orders</a>
+            </div>
+        `);
+    } catch (error) {
+        console.error("Error in finalOrder:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+
 
 app.get("/profile", isLoggedIn, async function (req, res) {
     let user = await userModel.findOne({email:req.user.email});
