@@ -10,7 +10,7 @@ const giftModel = require("./models/giftModel");
 const menuModel = require("./models/menuModel");
 // const multerconfig = require("./config/multerconfig");
 const db = require("./config/mongooseConnection");
-
+const PORT = process.env.PORT || 3000;
 const app = express();
 
 app.use(cookieParser());
@@ -44,7 +44,6 @@ app.post("/create", async function (req, res) {
 
             let token = jwt.sign({ email }, "secret");
             res.cookie("token", token);
-            user.balance = 0;
             res.send("Account Registered. You can login");
         })
     })
@@ -472,6 +471,6 @@ function isLoggedIn(req, res, next) {
     }
 }
 
-app.listen(3000, function () {
+app.listen(PORT, function () {
     console.log("Smart Order starting");
 });
