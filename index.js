@@ -19,6 +19,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 const fs = require('fs');
+const { table } = require("console");
+
+let tableNumber = null;
 
 // Middleware to check admin access
 // function isAdmin(req, res, next) {
@@ -96,19 +99,23 @@ app.get("/orders", isLoggedIn, async function (req, res) {
     res.render("orders", { user });
 })
 
-app.get("/orderHistory/create", async function (req, res) {
-    let orderHistory = await orderHistoryModel.create({
-        orderHistoryData: "Samosa",
-        user: "670ab1042ceeb6351ed8bc9e"
-    })
+// app.get("/orderHistory/create", async function (req, res) {
+//     let orderHistory = await orderHistoryModel.create({
+//         orderHistoryData: "Samosa",
+//         user: "670ab1042ceeb6351ed8bc9e"
+//     })
 
-    let user = await userModel.findOne({ _id: "670ab1042ceeb6351ed8bc9e" });
-    user.orderHistory.push(orderHistory._id);
-    await user.save();
-    res.send(orderHistory);
-})
+//     let user = await userModel.findOne({ _id: "670ab1042ceeb6351ed8bc9e" });
+//     user.orderHistory.push(orderHistory._id);
+//     await user.save();
+//     res.send(orderHistory);
+// })
 
 app.get("/", function (req, res) {
+    if(req.query.table){
+        tableNumber = req.query.table;
+        console.log(tableNumber);
+    }
     res.render("index");
 })
 
@@ -121,6 +128,8 @@ app.get("/home", isLoggedIn, async function (req, res) {
     let user = await userModel.findOne({ email: req.user.email });
     if (!user)
         res.send("You are not logged in")
+    user.tableNumber = tableNumber;
+    user.save();
     res.render("home", { user });
 });
 
@@ -274,34 +283,52 @@ app.get("/confirmOrder", isLoggedIn, async function (req, res) {
     }
     res.render("confirmOrder", {user});
 });
-app.post('/confirmOrder',isLoggedIn, async (req, res) => {
+
+app.post('/confirmOrder', isLoggedIn, async (req, res) => {
     try {
-        // Ensure the request body exists and contains an email
         const { email: enteredEmail } = req.body;
+
         if (!enteredEmail) {
             return res.send(`
-                <h1 style="text-align:center; color: red;">Email is required!</h1>
-                <a href="/confirmOrder" style="display: block; text-align: center; margin-top: 20px;">Go back</a>
+                <h1>Email is required!</h1>
+                <a href="/confirmOrder">Go back</a>
             `);
         }
 
-        // Fetch the user using req.user.email
         const user = await userModel.findOne({ email: req.user.email }).populate('bag');
         if (!user) {
-            return res.send(`
-                <h1 style="text-align:center; color: red;">User not found!</h1>
-                <a href="/confirmOrder" style="display: block; text-align: center; margin-top: 20px;">Go back</a>
-            `);
+            return res.send("<h1>User not found!</h1>");
         }
 
-        // Check if the entered email matches the user's email
         if (enteredEmail.trim() === user.email.trim()) {
             const bagItems = user.bag || [];
+            const orderData = {
+                user: user._id,
+                tableNumber: user.tableNumber || 'Unknown', // Include table number
+                bag: bagItems.map(item => ({
+                    id: item._id,
+                    name: item.name,
+                    quantity: item.quantity,
+                })),
+                date: new Date(),
+            };
+
+            // Save to file and database
+            writeOrderToFile(orderData);
+
+            const newOrder = new orderHistoryModel(orderData);
+            await newOrder.save();
+
+            // Add order to user's history and clear bag
+            user.orderHistory.push(newOrder._id);
+            user.bag = [];
+            await user.save();
+
             res.redirect(`/finalOrder?bag=${encodeURIComponent(JSON.stringify(bagItems))}`);
         } else {
             res.send(`
-                <h1 style="text-align:center; color: red;">Email does not match!</h1>
-                <a href="/confirmOrder" style="display: block; text-align: center; margin-top: 20px;">Go back</a>
+                <h1>Email does not match!</h1>
+                <a href="/confirmOrder">Go back</a>
             `);
         }
     } catch (error) {
@@ -310,11 +337,10 @@ app.post('/confirmOrder',isLoggedIn, async (req, res) => {
     }
 });
 
-// Helper function to write data to the JSON file
+
 function writeOrderToFile(orderData) {
     const orderFilePath = path.join(__dirname, 'orderList.json');
 
-    // Read existing orders from the file
     fs.readFile(orderFilePath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading order file:', err);
@@ -323,95 +349,62 @@ function writeOrderToFile(orderData) {
 
         let orders = [];
         try {
-            // Parse existing orders or start with an empty array if no orders exist
-            orders = JSON.parse(data);
+            orders = JSON.parse(data); // Parse existing orders
         } catch (parseError) {
             console.error('Error parsing order file:', parseError);
         }
 
-        // Push the new order to the orders array
-        orders.push(orderData);
+        orders.push(orderData); // Add new order
 
-        // Write the updated orders array back to the file
         fs.writeFile(orderFilePath, JSON.stringify(orders, null, 2), (writeErr) => {
             if (writeErr) {
                 console.error('Error writing order file:', writeErr);
             } else {
-                console.log('Order saved successfully!');
+                console.log('Order saved successfully with table number!');
             }
         });
     });
 }
 
-app.get('/finalOrder', isLoggedIn, async (req, res) => {
-    const user = await userModel.findOne({ email: req.user.email }).populate({
-        path: 'bag',
-        populate: {
-            path: 'name', // Populate 'name' field in each Bag item, which refers to a menu item
-            model: 'menu' // Ensure the model for 'name' is Menu
-        }
-    });
 
-
+app.get("/finalOrder", isLoggedIn, async (req, res) => {
     try {
-        const bag = JSON.parse(req.query.bag || '[]');
-        if (bag.length === 0) {
-            return res.send(`
-                <h1>Your order bag is empty!</h1>
-                <a href="/confirmOrder">Go back</a>
-            `);
+        const user = await userModel.findOne({ email: req.user.email }).populate({
+            path: 'bag',
+            populate: {
+                path: 'name', // Populate 'name' field in each Bag item, which refers to a menu item
+                model: 'menu' // Ensure the model for 'name' is Menu
+            }
+        });
+        if (!user || user.bag.length === 0) {
+            return res.send("<h1>Your order bag is empty!</h1>");
         }
 
-        // Prepare order details
-        const email = req.user?.email || 'guest';  // Assuming user email is available
         const orderData = {
-            email: user.email,
+            user: user.email,
+            tableNumber: user.tableNumber || 'Unknown', // Include table number
             bag: user.bag,
-            timestamp: new Date().toISOString()
+            date: new Date(),
         };
 
-        // Save order to file
         writeOrderToFile(orderData);
 
-        // Generate the items list for displaying the order
-        const itemsList = bag.map(item => `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.quantity}</td>
-                <td>₹${item.price}</td>
-                <td>₹${item.quantity * item.price}</td>
-            </tr>
-        `).join('');
+        const newOrder = new orderHistoryModel(orderData);
+        await newOrder.save();
 
-        const totalPrice = bag.reduce((total, item) => total + (item.quantity * item.price), 0);
+        user.orderHistory.push(newOrder._id);
+        user.bag = [];
+        await user.save();
 
-        // Send the confirmation message
         res.send(`
-            <div>
-                <h1>Order Confirmed!</h1>
-                <table border="1" style="width: 100%; text-align: left;">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Quantity</th>
-                            <th>Price</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${itemsList}
-                    </tbody>
-                </table>
-                <h3>Total Price: ₹${totalPrice}</h3>
-                <a href="/orderList">View Orders</a>
-            </div>
+            <h1>Order Confirmed!</h1>
+            <a href="/orderList">View Orders</a>
         `);
     } catch (error) {
         console.error("Error in finalOrder:", error);
         res.status(500).send("Internal Server Error");
     }
 });
-
 
 
 app.get("/profile", isLoggedIn, async function (req, res) {
@@ -441,30 +434,29 @@ app.post("/addToBag/:id", isLoggedIn, async function (req, res) {
 
         // Fetch the menu item by ID from params
         const menuItem = await menuModel.findById(req.params.id);
-
         // Check if the bag item already exists in the user's bag
         let bagItem = await bagModel.findOne({ name: menuItem._id });
-
+        
         if (bagItem && user.bag.some(item => item.equals(bagItem._id))) {
             // If item exists in the user's bag, remove it
-
+            
             // Filter out the item from the user's bag array
             // user.bag = user.bag.filter(item => !item.equals(bagItem._id));
             // Save the updated user document
             // await user.save();
-
+            
             // Optionally remove the bag item from the Bag collection
             await bagModel.findByIdAndDelete(bagItem._id);
-
+            
         } else {
             // If item doesn't exist in user's bag, add it
-
+            
             bagItem = await bagModel.findOneAndUpdate(
                 { name: menuItem._id },
                 { $set: { name: menuItem._id, quantity: 1 } },
                 { new: true, upsert: true } // Upsert to create if it doesn't exist
             );
-
+            
             user.bag.push(bagItem._id); // Add the new bag item
             await user.save();
         }

@@ -12,6 +12,10 @@ const userSchema = mongoose.Schema({
         default:"Student",
     },
     phoneNo: Number,
+    tableNumber: {
+        type: Number,
+        default: null, // Add tableNumber to the schema
+    },
     balance: {
         type:Number,
         default:0,
