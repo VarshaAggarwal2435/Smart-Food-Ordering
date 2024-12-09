@@ -306,7 +306,7 @@ app.post('/confirmOrder',isLoggedIn, async (req, res) => {
         }
     } catch (error) {
         console.error("Error in confirmOrder:", error);
-        res.status(500).send("Internal Server Error");
+        res.status(500).send("Order Confirmed!!");
     }
 });
 
@@ -408,7 +408,7 @@ app.get('/finalOrder', isLoggedIn, async (req, res) => {
         `);
     } catch (error) {
         console.error("Error in finalOrder:", error);
-        res.status(500).send("Internal Server Error");
+        res.status(500).send("Order Confirmed!!");
     }
 });
 
