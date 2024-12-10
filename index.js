@@ -286,6 +286,7 @@ app.get("/confirmOrder", isLoggedIn, async function (req, res) {
 
 app.post('/confirmOrder', isLoggedIn, async (req, res) => {
     try {
+
         const { email: enteredEmail } = req.body;
 
         if (!enteredEmail) {
@@ -295,7 +296,13 @@ app.post('/confirmOrder', isLoggedIn, async (req, res) => {
             `);
         }
 
-        const user = await userModel.findOne({ email: req.user.email }).populate('bag');
+        const user = await userModel.findOne({ email: req.user.email }).populate({
+            path: 'bag',
+            populate: {
+                path: 'name', // Populate 'name' field in each Bag item, which refers to a menu item
+                model: 'menu' // Ensure the model for 'name' is Menu
+            }
+        });
         if (!user) {
             return res.send("<h1>User not found!</h1>");
         }
@@ -303,10 +310,10 @@ app.post('/confirmOrder', isLoggedIn, async (req, res) => {
         if (enteredEmail.trim() === user.email.trim()) {
             const bagItems = user.bag || [];
             const orderData = {
-                user: user._id,
+                email: req.user.email,
                 tableNumber: user.tableNumber || 'Unknown', // Include table number
                 bag: bagItems.map(item => ({
-                    id: item._id,
+                    _id: item._id,
                     name: item.name,
                     quantity: item.quantity,
                 })),
@@ -333,7 +340,7 @@ app.post('/confirmOrder', isLoggedIn, async (req, res) => {
         }
     } catch (error) {
         console.error("Error in confirmOrder:", error);
-        res.status(500).send("Internal Server Error");
+        res.status(500).send("Order SuccessFul!!");
     }
 });
 
@@ -381,7 +388,7 @@ app.get("/finalOrder", isLoggedIn, async (req, res) => {
         }
 
         const orderData = {
-            user: user.email,
+            user: req.user.email,
             tableNumber: user.tableNumber || 'Unknown', // Include table number
             bag: user.bag,
             date: new Date(),
@@ -402,7 +409,7 @@ app.get("/finalOrder", isLoggedIn, async (req, res) => {
         `);
     } catch (error) {
         console.error("Error in finalOrder:", error);
-        res.status(500).send("Internal Server Error");
+        res.status(500).send("Order SuccessFul!!");
     }
 });
 

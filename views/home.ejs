@@ -62,13 +62,14 @@
                         <% if(user.orderHistory.length == 0){%>
                             <p>NO orders placed</p>
                         <%}else{%>
-    
+                        <%let orderNo = 1%>
                         <% user.orderHistory.forEach(function(order){%>
                             <div class="card border-0 ">
                                 <img class="card-img-top " src="/images/logoImage.jpg">
                                 <div class="card-block ">
-                                    <h4 class="card-title">Samosa</h4>
-                                    <p class="card-text">Rs. 12</p>
+                                    <h4 class="card-title">Order - <%=orderNo%></h4>
+                                    <!-- <p class="card-text"></p> -->
+                                    <%orderNo=orderNo+1%>
                                 </div>
                             </div>
     
