@@ -293,5 +293,57 @@
       }
     ],
     "date": "2024-12-10T05:27:15.344Z"
+  },
+  {
+    "email": "def@def",
+    "tableNumber": "Unknown",
+    "bag": [
+      {
+        "_id": "6757daf2ed9bbfc1c7e7d12b",
+        "name": {
+          "_id": "6710280429dfd0c0ab6b0d1d",
+          "name": "pasta",
+          "price": 50,
+          "image": "/images/pasta.webp"
+        },
+        "quantity": 1
+      }
+    ],
+    "date": "2024-12-10T06:16:15.863Z"
+  },
+  {
+    "user": "def@def",
+    "tableNumber": "Unknown",
+    "bag": [
+      {
+        "_id": "6757daf2ed9bbfc1c7e7d12b",
+        "name": {
+          "_id": "6710280429dfd0c0ab6b0d1d",
+          "name": "pasta",
+          "price": 50,
+          "image": "/images/pasta.webp"
+        },
+        "__v": 0,
+        "quantity": 1
+      }
+    ],
+    "date": "2024-12-10T06:16:16.191Z"
+  },
+  {
+    "email": "def@def",
+    "tableNumber": "Unknown",
+    "bag": [
+      {
+        "_id": "67573212ed9bbfc1c7e7d121",
+        "name": {
+          "_id": "6710280429dfd0c0ab6b0d1f",
+          "name": "pizza",
+          "price": 140,
+          "image": "/images/image2.jpg"
+        },
+        "quantity": 1
+      }
+    ],
+    "date": "2024-12-10T06:26:18.417Z"
   }
 ]

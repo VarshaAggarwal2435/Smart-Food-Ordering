@@ -384,7 +384,7 @@ app.get("/finalOrder", isLoggedIn, async (req, res) => {
             }
         });
         if (!user || user.bag.length === 0) {
-            return res.send("<h1>Your order bag is empty!</h1>");
+            return res.send("<h1>Order Successful!!</h1>");
         }
 
         const orderData = {
